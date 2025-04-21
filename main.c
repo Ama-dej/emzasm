@@ -61,6 +61,7 @@ const char *mnemonics[] = {
 
 enum type_t {
 	NEWLINE,
+	INTEGER,
 	MNEMONIC,
 	LABEL,
 	LABEL_REFERENCE
@@ -247,6 +248,20 @@ int main(int argc, char *argv[])
 			}
 
 			column += strlen(buffer);
+		} else if (isdigit(c)) { // TODO: dodej še za dvojiško in šestnajstiško!
+			int num = 0;
+
+			do {
+				num *= 10;
+				num += c - '0';
+			} while (isdigit(c = fgetc(f)));
+
+			printf("%d[INTEGER] ", num);
+
+			t.type = INTEGER;
+			t.id = num;
+
+			skip = true;
 		}
 	}
 

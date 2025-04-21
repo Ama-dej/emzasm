@@ -7,6 +7,7 @@ oznaka:	rt
 	INP
 	XOR
 	JMS oznaka
+	2341
 .pod:
 
 neki:
