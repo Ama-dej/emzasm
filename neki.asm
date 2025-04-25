@@ -7,8 +7,11 @@ oznaka:	rt
 	INP
 	XOR
 	JMS oznaka
-	2341
+	0x10	
+	0b1010*(1-0x2+3)
 .pod:
+
+	jmp .pod ; To je super duper kul komentar.
 
 neki:
 .pod:
