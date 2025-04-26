@@ -7,8 +7,8 @@ oznaka:	rt
 	INP
 	XOR
 	JMS oznaka
-	0x10	
-	0b1010*(1-0x2+3)
+	0x10 >> 1 + ~10
+	0b1010*(1-0x2+3<<1)
 .pod:
 
 	jmp .pod ; To je super duper kul komentar.
@@ -16,6 +16,8 @@ oznaka:	rt
 neki:
 .pod:
 	jmp oznaka.pod
+
+	rt
 
 fasf:
 	jmp .pod

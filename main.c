@@ -60,6 +60,7 @@ const char *mnemonics[] = {
 };
 
 enum type_t {
+	NONE,
 	NEWLINE,
 	INTEGER,
 	MNEMONIC,
@@ -70,7 +71,13 @@ enum type_t {
 	STAR,
 	SLASH,
 	LPARENTHESIS,
-	RPARENTHESIS
+	RPARENTHESIS,
+	AND,
+	OR,
+	XOR,
+	NOT,
+	LEFT_SHIFT,
+	RIGHT_SHIFT
 };
 
 struct token_t {
@@ -102,9 +109,11 @@ int ismnemonic(char *s)
 struct symbol_t symbol_table[256];
 int symbol_index = 0;
 
-int find_sublabel(char *s, int offset) // NE DELA PRAVILNO!!!!!!!!
+int find_sublabel(char *s, int offset) // NE DELA PRAVILNO!!!!!!!! (dela pravilno)
 {
 	for (int i = offset; i < symbol_index; i++) {
+		//printf("(%s) ", symbol_table[i].name);
+
 		if (symbol_table[i].type != LABEL)
 			continue;
 
@@ -118,8 +127,8 @@ int find_sublabel(char *s, int offset) // NE DELA PRAVILNO!!!!!!!!
 	return -1;
 }
 
-const enum type_t sisymbolst[] = {PLUS, MINUS, STAR, SLASH, LPARENTHESIS, RPARENTHESIS};
-const char sisymbols[] = {'+', '-', '*', '/', '(', ')'};
+const enum type_t sisymbolst[] = {PLUS, MINUS, STAR, SLASH, LPARENTHESIS, RPARENTHESIS, AND, OR, XOR, NOT};
+const char sisymbols[] = {'+', '-', '*', '/', '(', ')', '&', '|', '^', '~'};
 #define SISYMBOLS_LEN (sizeof(sisymbols) / sizeof(sisymbols[0]))
 
 int find_label(char *s, int offset)
@@ -145,7 +154,7 @@ int find_label(char *s, int offset)
 			cmp = symbol_table[i].name;
 		}
 
-		printf("(%s %s)", cmp, searched);
+		//printf("(%s %s)", cmp, searched);
 
 		if (strcmp(searched, cmp) == 0) {
 			if (free_flag)
@@ -225,11 +234,10 @@ int dectoint(char *s)
 		}
 	}
 
-	if (i == 2)
-		return -1;
-
 	return num;
 }
+
+struct token_t tokens[1 << 16];
 
 int main(int argc, char *argv[])
 {
@@ -247,6 +255,7 @@ int main(int argc, char *argv[])
 	bool skip = false;
 	int cur_parent = -1;
 	int cur_byte = 0;
+	int token_index = 0;
 
 	for (;; column++) {
 		if (!skip)
@@ -299,10 +308,22 @@ int main(int argc, char *argv[])
 						free(buffer);
 						fclose(f);
 						return -1;
+					} else if (find_sublabel(buffer, cur_parent + 1) != -1) {
+						printf("Duplicate sublabel \"%s:\" on line %d, column %d.\n", buffer, line, column);
+						free(buffer);
+						fclose(f);
+						return -1;
 					}
 
 					sym.parent = cur_parent;
 				} else {
+					if (find_label(buffer, 0) != -1) {
+						printf("Duplicate label \"%s:\" on line %d, column %d.\n", buffer, line, column);
+						free(buffer);
+						fclose(f);
+						return -1;
+					}
+
 					cur_parent = symbol_index;
 				}
 
@@ -373,6 +394,28 @@ int main(int argc, char *argv[])
 			column += strlen(buffer) - 1;
 			skip = true;
 			free(buffer);
+		} else if (c == '<') {
+			column++;
+
+			if ((c = fgetc(f)) == '<') {
+				t.type = LEFT_SHIFT;
+				printf("[<<] ");
+			} else {
+				printf("Unrecognized symbol \'%c\' on line %d, column %d.\n", c, line, column);
+				fclose(f);
+				return -1;
+			}
+		} else if (c == '>') {
+			column++;
+
+			if ((c = fgetc(f)) == '>') {
+				t.type = RIGHT_SHIFT;
+				printf("[>>] ");
+			} else {
+				printf("Unexpected symbol on line %d, column %d. Expected \'>\' but got \'%c\'.\n", line, column, c);
+				fclose(f);
+				return -1;
+			}
 		} else {
 			int i = 0;
 			bool found = false;
@@ -385,7 +428,7 @@ int main(int argc, char *argv[])
 			}
 
 			if (!found) {
-				printf("Unrecognized symbol \'%c\' on line %d, column %d.\n", c, line, column);
+				printf("Unexpected symbol on line %d, column %d. Expected \'<\' but got \'%c\'.\n", line, column, c);
 				fclose(f);
 				return -1;
 			}
@@ -394,11 +437,10 @@ int main(int argc, char *argv[])
 
 			printf("[%c] ", sisymbols[i]);
 		}
+		
+		tokens[token_index++] = t;
 	}
 
-	/*printf("Illegal symbol \"%s\" on line %d, column %d.", buffer, line, column);
-	fclose(f);
-	return -1;*/
 	fclose(f);
 	return 0;
 }
