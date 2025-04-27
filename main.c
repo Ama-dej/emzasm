@@ -63,7 +63,7 @@ const char *mnemonics[] = {
 
 struct opcode_t {
 	uint8_t opcode;
-	uint8_t operand_mask;
+	uint8_t argument_mask;
 };
 
 const struct opcode_t opcodes[] = {
@@ -146,6 +146,8 @@ enum type_t {
 struct token_t {
 	enum type_t type;
 	int id;
+	int line;
+	int column;
 };
 
 struct symbol_t {
@@ -362,7 +364,7 @@ int main(int argc, char *argv[])
 			break;
 
 		skip = false;
-		struct token_t t = {NEWLINE, 0};
+		struct token_t t = {NEWLINE, 0, line, column};
 
 		if (c == ' ' || c == '\t') {
 			continue;
@@ -567,6 +569,8 @@ int main(int argc, char *argv[])
 	 * (NONE) [NEWLINE] -> [NONE]
 	 */
 
+	FILE *wf = fopen("testprog.bin", "w+");
+
 	token_index = 0;
 	int ptr1 = -1;
 	int ptr2 = -1;
@@ -609,6 +613,8 @@ int main(int argc, char *argv[])
 
 			if (pos == -1) {
 				printf("Invalid label \"%s:\".\n", sym.name);
+				fclose(wf);
+				remove("testprog.bin");
 				return -1;
 			}
 
@@ -680,14 +686,62 @@ int main(int argc, char *argv[])
 			tokens[ptr3].id = ~t3.id;
 			tokens[ptr2].type = NONE;
 			reset = true;
-		} else if (t1.type == NONE && t2.type == MNEMONIC && t_lookahead.type == NEWLINE) {
-				
+		} else if (t1.type == NONE && t2.type == MNEMONIC && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
+			int i = t2.id;			
+
+			if (opcodes[i].argument_mask == 0) {
+				printf("Instruction \"%s\" on line %d, column %d, expects no arguments, but arguments were given.\n", mnemonics[i], t2.line, t2.column);
+				fclose(wf);
+				remove("testprog.bin");
+				return -1;
+			}
+
+			uint8_t instruction;
+			uint8_t mask;
+
+			if ((opcodes[i].argument_mask & 1) == 0)
+				mask = ~opcodes[i].argument_mask;
+			else
+				mask = opcodes[i].argument_mask;
+
+			/*
+			if (t3.id > mask)
+				printf("Warning: Argument %d is bigger than expected (%d), truncating to %d.\n", t3.id, mask, t3.id & mask);
+			*/
+			
+			instruction = opcodes[i].opcode | (t3.id & mask);	
+			printf("[MNEMONIC] [INT] -> [NONE] %2Xh %d\n", instruction, t3.id);
+			fwrite(&instruction, 1, 1, wf);
+
+			tokens[ptr2].type = NONE;
+			tokens[ptr3].type = NONE;
+			reset = true;
+		} else if (t3.type == MNEMONIC && t_lookahead.type == NEWLINE) {
+			int i = t3.id;
+
+			if (opcodes[i].argument_mask != 0) {
+				printf("Instruction \"%s\" on line %d, column %d, expects one argument, but none were given.\n", mnemonics[i], t3.line, t3.column);
+				fclose(wf);
+				remove("testprog.bin");
+				return -1;
+			}
+
+			uint8_t instruction = opcodes[i].opcode;
+			printf("[MNEMONIC] -> [NONE] %2Xh\n", instruction);
+			fwrite(&instruction, 1, 1, wf);
+
+			tokens[ptr3].type = NONE;
+			reset = true;
 		} else if (t2.type == NONE && t3.type == LABEL && (t_lookahead.type == NEWLINE || t_lookahead.type == MNEMONIC)) {
 			printf("[LABEL] -> [NONE]\n");
 			tokens[ptr3].type = NONE;
 			reset = true;
 		} else if (t2.type == NONE && t3.type == NEWLINE) {
 			printf("[NEWLINE] -> [NONE]\n");
+			tokens[ptr3].type = NONE;
+			reset = true;
+		} else if (t3.type == INTEGER && t_lookahead.type == NEWLINE) {
+			printf("[INT] -> [NONE]\n");	
 			tokens[ptr3].type = NONE;
 			reset = true;
 		}
@@ -711,5 +765,16 @@ int main(int argc, char *argv[])
 			break;
 	}
 
+	int tmp;
+
+	if ((tmp = next(0)) != -1) {
+		struct token_t t = tokens[tmp];
+		printf("Invalid syntax on line %d.\n", t.line, t.column);
+		fclose(wf);
+		remove("testprog.bin");
+		return -1;
+	}
+
+	fclose(wf);
 	return 0;
 }

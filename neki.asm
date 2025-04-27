@@ -17,12 +17,11 @@ oznaka:	rt
 
 neki:
 .pod:
-	jmp oznaka.pod
+	jmp (((2<<3)*7/3)&~0b111111100)+100+(oznaka.pod&0b11)
 
 	rt
 
 fasf:
 	jms neki.pod
 	jmp .trololo
-
 .trololo:
