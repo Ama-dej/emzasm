@@ -1,3 +1,4 @@
+testek:
 oznaka:	rt
 	NOP
 	RT
@@ -7,8 +8,9 @@ oznaka:	rt
 	INP
 	XOR
 	JMS oznaka
-	0x10 >> 1 + ~10
-	0b1010*(1-0x2+3<<1)
+	(1)*(2)
+	0x10>>1+~10
+	0b1010*(-1-0x2+3<<1)
 .pod:
 
 	jmp .pod ; To je super duper kul komentar.
@@ -20,5 +22,7 @@ neki:
 	rt
 
 fasf:
-	jmp .pod
 	jms neki.pod
+	jmp .trololo
+
+.trololo:

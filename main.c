@@ -1,11 +1,13 @@
 #include <stdio.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 const char *mnemonics[] = {
 	"nop", 
+	"brk",
 	"rt",
 	"rts",
 	"psh",
@@ -59,7 +61,68 @@ const char *mnemonics[] = {
 	"\0"
 };
 
+struct opcode_t {
+	uint8_t opcode;
+	uint8_t operand_mask;
+};
+
+const struct opcode_t opcodes[] = {
+	{0b00000000, 0},
+	{0b00000001, 0},
+	{0b00000010, 0},
+	{0b00000011, 0},
+	{0b00000100, 0},
+	{0b00000101, 0},
+	{0b00000110, 0},
+	{0b00000111, 0},
+	{0b00001000, 0},
+	{0b00001001, 0},
+	{0b00001010, 0},
+	{0b00001011, 0},
+	{0b00001100, 0},
+	{0b00001101, 0},
+	{0b00001110, 0},
+	{0b00001111, 0},
+	{0b00010000, 0},
+	{0b00010001, 0},
+	{0b00010010, 0},
+	{0b00010011, 0},
+	{0b00010100, 0},
+	{0b00010101, 0},
+	{0b00010110, 0},
+	{0b00010111, 0},
+	{0b00011000, 0},
+	{0b00011001, 0},
+	{0b00011010, 0},
+	{0b00011011, 0},
+	{0b00011100, 0b11},
+	{0b00100000, 0b11},
+	{0b00100100, 0b11},
+	{0b00101000, 0},
+	{0b00101001, 0},
+	{0b00101010, 0},
+	{0b00101011, 0},
+	{0b00101100, 0},
+	{0b00101101, 0},
+	{0b00101110, 0},
+	{0b00101111, 0},
+	{0b00110000, ~0b11},
+	{0b00110100, ~0b11},
+	{0b00111000, ~0b11},
+	{0b00111100, ~0b11},
+	{0b01000000, 0b11},
+	{0b01000100, 0b11},
+	{0b01001000, 0b11},
+	{0b01001100, 0b11},
+	{0b01010000, 0b1111},
+	{0b01100000, ~0b1111},
+	{0b01110000, 0b1111},
+	{0b10000000, 0b111111},
+	{0b11000000, 0b111111},
+};
+
 enum type_t {
+	END,
 	NONE,
 	NEWLINE,
 	INTEGER,
@@ -238,6 +301,40 @@ int dectoint(char *s)
 }
 
 struct token_t tokens[1 << 16];
+int t_len = 0;
+
+const enum type_t precedence_array[][3] = {
+	{STAR, SLASH, END},
+	{PLUS, MINUS, END},
+	{LEFT_SHIFT, RIGHT_SHIFT, END},
+	{AND, END},
+	{XOR, END},
+	{OR, END}
+};
+
+#define PA_LEN (sizeof(precedence_array) / sizeof(precedence_array[0]))
+
+int next(int i)
+{
+	for (; i < t_len; i++) {
+		if (tokens[i].type != NONE)
+			return i;
+	}
+
+	return -1;
+}
+
+int precedence(enum type_t type)
+{
+	for (int i = 0; i < PA_LEN; i++) {
+		for (int j = 0; precedence_array[i][j] != END; j++) {
+			if (precedence_array[i][j] == type)
+				return i;
+		}
+	}
+
+	return PA_LEN;
+}
 
 int main(int argc, char *argv[])
 {
@@ -315,6 +412,7 @@ int main(int argc, char *argv[])
 						return -1;
 					}
 
+					printf("{%d} ", cur_parent);
 					sym.parent = cur_parent;
 				} else {
 					if (find_label(buffer, 0) != -1) {
@@ -351,7 +449,7 @@ int main(int argc, char *argv[])
 				t.id = symbol_index;
 				skip = true;
 
-				struct symbol_t sym = {LABEL_REFERENCE, buffer, -1};
+				struct symbol_t sym = {LABEL_REFERENCE, buffer, -1, -1};
 				symbol_table[symbol_index++] = sym;
 			}
 
@@ -441,6 +539,177 @@ int main(int argc, char *argv[])
 		tokens[token_index++] = t;
 	}
 
+	t_len = token_index;
+
+	if (tokens[t_len - 1].type != NEWLINE)
+		tokens[t_len++].type == NEWLINE;
+
 	fclose(f);
+	
+	/*
+	 * Grammar:
+	 * [REFERENCE] -> [INT]
+	 * [(] [INT] [)] -> [INT]
+	 * [INT] [*] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [/] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [+] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [-] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [<<] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [>>] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [&] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [|] [INT] (PRECEDENCE) -> [INT]
+	 * [INT] [^] [INT] (PRECEDENCE) -> [INT]
+	 * [+] [INT] -> [INT]
+	 * [-] [INT] -> [INT]
+	 * [~] [INT] -> [INT]
+	 * (NONE) [MNEMONIC] [INT] (NEWLINE) || (NONE) [MNEMONIC] (NEWLINE) -> [NONE] //odvisno od inštrukcije
+	 * (NONE) [LABEL] (NEWLINE | MNEMONIC) -> [NONE]
+	 * (NONE) [NEWLINE] -> [NONE]
+	 */
+
+	token_index = 0;
+	int ptr1 = -1;
+	int ptr2 = -1;
+	int ptr3 = -1;
+	int lookahead = -1;
+	bool reset = false;
+
+	while (true) {
+		int lookbehind = next(0);
+		lookahead = next(lookahead + 1);
+		int lookahead_precedence = precedence(tokens[lookahead].type);
+
+		struct token_t t1 = {NONE, -1};
+		struct token_t t2 = {NONE, -1};
+		struct token_t t3 = {NONE, -1};
+		struct token_t t_lookahead = tokens[lookahead];
+		
+		if (ptr1 != -1)
+			t1 = tokens[ptr1];
+		if (ptr2 != -1)
+			t2 = tokens[ptr2];
+		if (ptr3 != -1)
+			t3 = tokens[ptr3];
+
+		if (t3.type == LABEL_REFERENCE) {
+			struct symbol_t sym = symbol_table[t3.id];
+			int pos;
+
+			if (sym.name[0] == '.') {
+				int i;
+				for (i = t3.id; i >= 0; i--) {
+					if (symbol_table[i].type == LABEL && symbol_table[i].name[0] != '.')
+						break;
+				}
+
+				pos = find_sublabel(sym.name, i + 1);			
+			} else {
+				pos = find_label(sym.name, 0);
+			}
+
+			if (pos == -1) {
+				printf("Invalid label \"%s:\".\n", sym.name);
+				return -1;
+			}
+
+			//printf("%s, %d\n", sym.name, symbol_table[pos].offset);
+			printf("[REFERENCE] -> [INT]\n");
+			
+			tokens[ptr3].type = INTEGER;
+			tokens[ptr3].id = symbol_table[pos].offset;
+			reset = true;
+		} else if (t1.type == LPARENTHESIS && t2.type == INTEGER && t3.type == RPARENTHESIS) {
+			printf("[(] [INT] [)] -> [INT]\n");
+			tokens[ptr1].type = NONE;
+			tokens[ptr3].type = NONE;
+			reset = true;
+		} else if (t1.type == INTEGER && t3.type == INTEGER) {
+			if (t2.type == STAR && lookahead_precedence >= precedence(STAR)) {
+				printf("[INT] [*] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id * t3.id;
+				reset = true;
+			} else if (t2.type == SLASH && lookahead_precedence >= precedence(SLASH)) {
+				printf("[INT] [/] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id / t3.id;
+				reset = true;
+			} else if (t2.type == PLUS && lookahead_precedence >= precedence(PLUS)) {
+				printf("[INT] [+] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id + t3.id;
+				reset = true;
+			} else if (t2.type == MINUS && lookahead_precedence >= precedence(MINUS)) {
+				printf("[INT] [-] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id - t3.id;
+				reset = true;
+			} else if (t2.type == LEFT_SHIFT && lookahead_precedence >= precedence(LEFT_SHIFT)) {
+				printf("[INT] [<<] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id << t3.id;
+				reset = true;
+			} else if (t2.type == RIGHT_SHIFT && lookahead_precedence >= precedence(RIGHT_SHIFT)) {
+				printf("[INT] [>>] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id >> t3.id;
+				reset = true;
+			} else if (t2.type == AND && lookahead_precedence >= precedence(AND)) {
+				printf("[INT] [&] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id & t3.id;
+				reset = true;
+			} else if (t2.type == OR && lookahead_precedence >= precedence(OR)) {
+				printf("[INT] [|] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id | t3.id;
+				reset = true;
+			} else if (t2.type == XOR && lookahead_precedence >= precedence(XOR)) {
+				printf("[INT] [^] [INT] -> [INT]\n");
+				tokens[ptr3].id = t1.id ^ t3.id;
+				reset = true;
+			}
+
+			if (reset) {
+				tokens[ptr1].type = NONE;
+				tokens[ptr2].type = NONE;
+			}
+		} else if (t2.type == PLUS && t3.type == INTEGER) {
+			printf("[+] [INT] -> [INT]\n");
+			tokens[ptr2].type = NONE;
+			reset = true;
+		} else if (t2.type == MINUS && t3.type == INTEGER) {
+			printf("[-] [INT] -> [INT]\n");
+			tokens[ptr3].id = -t3.id;
+			tokens[ptr2].type = NONE;
+			reset = true;
+		} else if (t2.type == NOT && t3.type == INTEGER) {
+			printf("[~] [INT] -> [INT]\n");
+			tokens[ptr3].id = ~t3.id;
+			tokens[ptr2].type = NONE;
+			reset = true;
+		} else if (t1.type == NONE && t2.type == MNEMONIC && t_lookahead.type == NEWLINE) {
+				
+		} else if (t2.type == NONE && t3.type == LABEL && (t_lookahead.type == NEWLINE || t_lookahead.type == MNEMONIC)) {
+			printf("[LABEL] -> [NONE]\n");
+			tokens[ptr3].type = NONE;
+			reset = true;
+		} else if (t2.type == NONE && t3.type == NEWLINE) {
+			printf("[NEWLINE] -> [NONE]\n");
+			tokens[ptr3].type = NONE;
+			reset = true;
+		}
+		
+		//printf("%d, %d\n", precedence(tokens[lookahead].type), precedence(PLUS));
+		//printf("%d, %d, %d\n", ptr1, ptr2, ptr3);
+		//printf("%d, %d, %d, %d\n", t1.type == INTEGER, t2.type == PLUS, t3.type == INTEGER, lookahead_precedence >= precedence(PLUS));
+		
+		if (reset) {
+			ptr1 = ptr2 = ptr3 = -1;
+			lookahead = lookbehind - 1;
+			reset = false;
+			continue;
+		}
+
+		ptr1 = ptr2;
+		ptr2 = ptr3;
+		ptr3 = lookahead;
+
+		if (lookahead == -1)
+			break;
+	}
+
 	return 0;
 }
