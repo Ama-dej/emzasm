@@ -23,5 +23,5 @@ neki:
 
 fasf:
 	jms neki.pod
-	jmp .trololo
+	jmp .trololo * 9999 + 1 / 1 % 2
 .trololo:
