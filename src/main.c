@@ -571,7 +571,13 @@ int main(int argc, char *argv[])
 	 * (NONE) [NEWLINE] -> [NONE]
 	 */
 
-	FILE *wf = fopen("testprog.bin", "w+");
+	char *fn = "a.bin";
+
+	if (argc >= 3) {
+		fn = argv[2];
+	}
+
+	FILE *wf = fopen(fn, "w+");
 
 	int starting_offset = 0;
 	int offset = 0;
@@ -624,7 +630,7 @@ int main(int argc, char *argv[])
 			if (pos == -1) {
 				printf("Invalid label \"%s:\".\n", sym.name);
 				fclose(wf);
-				remove("testprog.bin");
+				remove(argv[2]);
 				return -1;
 			}
 
@@ -713,7 +719,7 @@ int main(int argc, char *argv[])
 			if (opcodes[i].argument_mask == 0) {
 				printf("Instruction \"%s\" on line %d, column %d, expects no arguments, but arguments were given.\n", mnemonics[i], t2.line, t2.column);
 				fclose(wf);
-				remove("testprog.bin");
+				remove(argv[2]);
 				return -1;
 			}
 
@@ -744,7 +750,7 @@ int main(int argc, char *argv[])
 			if (opcodes[i].argument_mask != 0) {
 				printf("Instruction \"%s\" on line %d, column %d, expects one argument, but none were given.\n", mnemonics[i], t3.line, t3.column);
 				fclose(wf);
-				remove("testprog.bin");
+				remove(argv[2]);
 				return -1;
 			}
 
@@ -800,7 +806,7 @@ int main(int argc, char *argv[])
 		struct token_t t = tokens[tmp];
 		printf("Invalid syntax on line %d.\n", t.line, t.column);
 		fclose(wf);
-		remove("testprog.bin");
+		remove(argv[2]);
 		return -1;
 	}
 
