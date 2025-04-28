@@ -19,7 +19,12 @@ enum type_t {
     XOR,
     NOT,
     LEFT_SHIFT,
-    RIGHT_SHIFT
+    RIGHT_SHIFT,
+	CURRENT_SEGMENT,
+	CURRENT_ADDRESS,
+	DX_DIRECTIVE,
+	ORG_DIRECTIVE,
+	TIMES_DIRECTIVE
 };
 
 struct opcode_t {

@@ -1,17 +1,3 @@
-int ismnemonic(char *s)
-{
-	int i;
-
-	for (i = 0; mnemonics[i][0] != '\0'; i++) {
-		for (int i = 0; s[i] != 0; s[i] = tolower(s[i]), i++);
-
-		if (strcmp(s, mnemonics[i]) == 0)
-			return i;
-	}
-
-	return -1;
-}
-
 int find_sublabel(char *s, int offset)
 {
 	for (int i = offset; i < symbol_index; i++) {

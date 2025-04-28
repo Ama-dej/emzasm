@@ -1,16 +1,6 @@
-testek:
-oznaka:	rt
-	NOP
-	RT
-	AND
-	LAE
-	XAE
-	INP
-	XOR
+oznaka:	
+	rt
 	JMS oznaka
-	(1)*(2)
-	0x10>>1+~10
-	0b1010*(-1-0x2+3<<1)
 .pod:
 
 	jmp .pod ; To je super duper kul komentar.
@@ -23,5 +13,10 @@ neki:
 
 fasf:
 	jms neki.pod
-	jmp .trololo * 9999 + 1 / 1 % 2
+	jmp .trololo * 9999 + 1 / 1 % 2 - $
+	dd ~0b111
+	db ~$
+	db 222
+	;.org fasf + 100
+	;times 21 db 1
 .trololo:

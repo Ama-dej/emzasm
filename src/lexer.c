@@ -1,6 +1,10 @@
-const enum type_t sisymbolst[] = {PLUS, MINUS, STAR, SLASH, REMAINDER, LPARENTHESIS, RPARENTHESIS, AND, OR, XOR, NOT};
 const char sisymbols[] = {'+', '-', '*', '/', '%', '(', ')', '&', '|', '^', '~'};
+const enum type_t sisymbolst[] = {PLUS, MINUS, STAR, SLASH, REMAINDER, LPARENTHESIS, RPARENTHESIS, AND, OR, XOR, NOT};
 #define SISYMBOLS_LEN (int)(sizeof(sisymbols) / sizeof(sisymbols[0]))
+
+const char *directives[] = {"db", "dw", "dd", ".org", "times"};
+const enum type_t directivest[] = {DX_DIRECTIVE, DX_DIRECTIVE, DX_DIRECTIVE, ORG_DIRECTIVE, TIMES_DIRECTIVE};
+#define DIRECTIVES_LEN (int)(sizeof(directivest) / sizeof(directivest[0]))
 
 int hextoint(char *s) 
 {
@@ -66,6 +70,32 @@ int dectoint(char *s)
 	return num;
 }
 
+int ismnemonic(char *s)
+{
+	int i;
+
+	for (i = 0; mnemonics[i][0] != '\0'; i++) {
+		for (int i = 0; s[i] != 0; s[i] = tolower(s[i]), i++);
+
+		if (strcmp(s, mnemonics[i]) == 0)
+			return i;
+	}
+
+	return -1;
+}
+
+int isdirective(char *s) // hm, funkcija sumljivo podobna fuknciji ismnemonic...
+{
+	for (int i = 0; i < DIRECTIVES_LEN; i++) {
+		for (int i = 0; s[i] != 0; s[i] = tolower(s[i]), i++);
+
+		if (strcmp(s, directives[i]) == 0)
+			return i;
+	}
+
+	return -1;
+}
+
 int lex(FILE *f)
 {
 	int t_len = 0;
@@ -115,6 +145,7 @@ int lex(FILE *f)
 			} while (isalpha(c) || isdigit(c) || c == '.' || c == '_' || c == '-');	// TODO: hmm več črk je loh not...
 
 			buffer[i] = 0;
+			int di;
 
 			if (c == ':') { // je 100 % oznaka
 				printf("LABEL[%s %d] ", buffer, cur_byte);
@@ -151,6 +182,17 @@ int lex(FILE *f)
 
 				//sym.offset = cur_byte;
 				symbol_table[symbol_index++] = sym;
+			} else if ((di = isdirective(buffer)) != -1 && !second){
+				printf("DIRECTIVE[%s] ", buffer);	
+				t.type = directivest[di];
+				t.id = di;
+				skip = true;
+				
+				if (t.type != TIMES_DIRECTIVE)
+					second = true;
+
+				cur_byte++;
+				free(buffer);
 			} else if (!second) {
 				printf("MNEMONIC[%s %d] ", buffer, ismnemonic(buffer));
 				t.type = MNEMONIC;
@@ -237,6 +279,17 @@ int lex(FILE *f)
 				printf("Unexpected symbol on line %d, column %d. Expected \'>\' but got \'%c\'.\n", line, column, c);
 				fclose(f);
 				return -1;
+			}
+		} else if (c == '$') {
+			column++;
+
+			if ((c = fgetc(f)) == '$') {
+				t.type = CURRENT_SEGMENT;
+				printf("[$$] ");
+			} else {
+				t.type = CURRENT_ADDRESS;
+				skip = true;
+				printf("[$] ");
 			}
 		} else {
 			int i = 0;

@@ -52,6 +52,8 @@ int parse(FILE *wf, char *fn, int t_len)
 	int ptr3 = -1;
 	int lookahead = -1;
 	bool reset = false;
+	bool mnemonic_present = false;
+	int cur_size = 1;
 
 	while (true) {
 		lookahead = next(lookahead + 1);
@@ -72,8 +74,21 @@ int parse(FILE *wf, char *fn, int t_len)
 		if (ptr3 != -1)
 			t3 = tokens[ptr3];
 
-		if (t3.type == MNEMONIC)
-			offset++;
+		if (mnemonic_present != true) {
+			if (t3.type == MNEMONIC || t3.type == DX_DIRECTIVE) {
+				int size = 1;
+	
+				if (t3.type == DX_DIRECTIVE)
+					size <<= t3.id;
+	
+				offset += size;
+				cur_size = size;
+				mnemonic_present = true;
+			}
+		} else if (t3.type == NEWLINE) {
+			mnemonic_present = false;
+			cur_size = 0;
+		}
 
 		if (t3.type == LABEL_REFERENCE) {
 			struct symbol_t sym = symbol_table[t3.id];
@@ -241,6 +256,33 @@ int parse(FILE *wf, char *fn, int t_len)
 			printf("[INT] -> [NONE]\n");	
 			tokens[ptr3].type = NONE;
 			reset = true;
+		} else if (t3.type == CURRENT_SEGMENT) {
+			printf("[$$] -> [INT]\n");
+			tokens[ptr3].type = INTEGER;
+			tokens[ptr3].id = 0; // trenutno, rabm se še odločt kako nej bi to delval (mogoče id & (~63)?)
+			reset = true;
+		} else if (t3.type == CURRENT_ADDRESS) {
+			tokens[ptr3].type = INTEGER;
+
+			if (mnemonic_present)
+				tokens[ptr3].id = offset - cur_size;
+			else
+				tokens[ptr3].id = offset;
+
+			printf("[$] -> [INT] %d\n", tokens[ptr3].id);
+
+			reset = true;
+		} else if (t1.type == NONE && t2.type == DX_DIRECTIVE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
+			int size = 1 << t2.id;
+			starting_offset += size;
+
+			printf("[DX%d] [INT] -> [NONE]\n", size);
+
+			fwrite(&t3.id, size, 1, wf);
+
+			tokens[ptr2].type = NONE;
+			tokens[ptr3].type = NONE;
+			reset = true;
 		}
 		
 		//printf("%d, %d\n", precedence(tokens[lookahead].type), precedence(PLUS));
@@ -251,7 +293,7 @@ int parse(FILE *wf, char *fn, int t_len)
 			ptr0 = ptr1 = ptr2 = ptr3 = -1;
 			lookahead = next(0) - 1;
 			offset = starting_offset;
-			reset = false;
+			mnemonic_present = reset = false;
 			continue;
 		}
 
@@ -268,7 +310,7 @@ int parse(FILE *wf, char *fn, int t_len)
 
 	if ((tmp = next(0)) != -1) {
 		struct token_t t = tokens[tmp];
-		printf("Invalid syntax on line %d.\n", t.line, t.column);
+		printf("Invalid syntax for expression on line %d.\n", t.line, t.column);
 		fclose(wf);
 		remove(fn);
 		return -1;
