@@ -56,6 +56,7 @@ int parse(FILE *wf, char *fn, int t_len)
 	bool mnemonic_present = false;
 	int cur_size = 1;
 	bool org_times_present = false;
+	int current_segment = 0;
 
 	while (true) {
 		lookahead = next(lookahead + 1);
@@ -306,9 +307,9 @@ int parse(FILE *wf, char *fn, int t_len)
 			tokens[ptr3].type = NONE;
 			reset = true;
 		} else if (t3.type == CURRENT_SEGMENT) {
-			printf("[$$] -> [INT]\n");
+			printf("[$$] -> [INT] %d\n", current_segment);
 			tokens[ptr3].type = INTEGER;
-			tokens[ptr3].id = 0; // trenutno, rabm se še odločt kako nej bi to delval (mogoče id & (~63)?)
+			tokens[ptr3].id = current_segment;
 			reset = true;
 		} else if (t3.type == CURRENT_ADDRESS) {
 			tokens[ptr3].type = INTEGER;
@@ -360,6 +361,7 @@ int parse(FILE *wf, char *fn, int t_len)
 				tokens[ptr3].type = NONE;
 				reset = true;
 			} else {
+				current_segment = t3.id; // tole bi mogl prov delat, ker bi se mogl ta stari $$ že parsat in met previlno vrednost
 				offset = t3.id;
 			}
 		} 
