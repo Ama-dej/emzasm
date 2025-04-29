@@ -46,6 +46,7 @@ int parse(FILE *wf, char *fn, int t_len)
 	int starting_offset = 0;
 	int offset = 0;
 	int token_index = 0;
+	int ptrb = -1;
 	int ptr0 = -1;
 	int ptr1 = -1;
 	int ptr2 = -1;
@@ -54,17 +55,21 @@ int parse(FILE *wf, char *fn, int t_len)
 	bool reset = false;
 	bool mnemonic_present = false;
 	int cur_size = 1;
+	bool org_times_present = false;
 
 	while (true) {
 		lookahead = next(lookahead + 1);
 		int lookahead_precedence = precedence(tokens[lookahead].type);
 
+		struct token_t tb = {NONE, -1, -1, -1};
 		struct token_t t0 = {NONE, -1, -1, -1};
 		struct token_t t1 = {NONE, -1, -1, -1};
 		struct token_t t2 = {NONE, -1, -1, -1};
 		struct token_t t3 = {NONE, -1, -1, -1};
 		struct token_t t_lookahead = tokens[lookahead];
-	
+
+		if (ptrb != -1)
+			tb = tokens[ptrb];	
 		if (ptr0 != -1)
 			t0 = tokens[ptr0];	
 		if (ptr1 != -1)
@@ -83,6 +88,9 @@ int parse(FILE *wf, char *fn, int t_len)
 	
 				offset += size;
 				cur_size = size;
+				mnemonic_present = true;
+			} else if (t3.type == ORG_DIRECTIVE || t3.type == TIMES_DIRECTIVE) {
+				org_times_present = true;
 				mnemonic_present = true;
 			}
 		} else if (t3.type == NEWLINE) {
@@ -114,7 +122,14 @@ int parse(FILE *wf, char *fn, int t_len)
 			}
 
 			if (symbol_table[pos].offset == -1) {
-				printf("DEBUG: Label postition not yet known, skipping for now.\n");
+				if (org_times_present) {
+					printf("Expression on line %d either not constant or too complex.\n", t3.line);
+					fclose(wf);
+					remove(fn);
+					return -1;
+				} else {
+					printf("DEBUG: Label postition not yet known, skipping for now.\n");
+				}
 			} else {
 				//printf("%s, %d\n", sym.name, symbol_table[pos].offset);
 				printf("[REFERENCE] -> [INT]\n");
@@ -128,6 +143,38 @@ int parse(FILE *wf, char *fn, int t_len)
 			tokens[ptr1].type = NONE;
 			tokens[ptr3].type = NONE;
 			reset = true;
+		} else if (t0.type == TIMES_DIRECTIVE && t1.type == INTEGER && t2.type == DX_DIRECTIVE) { // tole mal scuffed
+			org_times_present = false;
+			int size = 1 << t2.id;
+
+			if (t1.id < 0) {
+				printf("Value (%d) on line %d in times directive cannot be negative.\n", t1.id, t1.line);
+				fclose(wf);
+				remove(fn);
+				return -1;
+			} else if (t1.id > 8192) {
+				printf("Value (%d) on line %d in times directive is too comically large.\n", t1.id, t1.line);
+				fclose(wf);
+				remove(fn);
+				return -1;
+			}
+
+			if (tb.type == NONE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
+				printf("[TIMES] [INT] [DX] [INT] -> [NONE]\n", size);
+
+				for (int i = 0; i < t1.id; i++)
+					fwrite(&t3.id, size, 1, wf);
+
+				tokens[ptr0].type = NONE;
+				tokens[ptr1].type = NONE;
+				tokens[ptr2].type = NONE;
+				tokens[ptr3].type = NONE;
+
+				starting_offset += t1.id * size;
+				reset = true;
+			} else {
+				offset += t1.id * size;
+			}
 		} else if (t1.type == INTEGER && t3.type == INTEGER) {
 			int t0_precedence = precedence(t0.type);
 
@@ -205,10 +252,12 @@ int parse(FILE *wf, char *fn, int t_len)
 			uint8_t instruction;
 			uint8_t mask;
 
-			if ((opcodes[i].argument_mask & 1) == 0)
+			if ((opcodes[i].argument_mask & 1) == 0) {
 				mask = ~opcodes[i].argument_mask;
-			else
+				t3.id = ~t3.id;
+			} else {
 				mask = opcodes[i].argument_mask;
+			}
 
 			/*
 			if (t3.id > mask)
@@ -283,20 +332,47 @@ int parse(FILE *wf, char *fn, int t_len)
 			tokens[ptr2].type = NONE;
 			tokens[ptr3].type = NONE;
 			reset = true;
-		}
-		
-		//printf("%d, %d\n", precedence(tokens[lookahead].type), precedence(PLUS));
-		//printf("%d, %d, %d\n", ptr1, ptr2, ptr3);
-		//printf("%d, %d, %d, %d\n", t1.type == INTEGER, t2.type == PLUS, t3.type == INTEGER, lookahead_precedence >= precedence(PLUS));
-		
+		} else if (t2.type == ORG_DIRECTIVE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
+			if (t1.type == NONE) {
+				int diff = t3.id - starting_offset;
+				starting_offset = t3.id;
+
+				if (diff < 0) {
+					printf("Value on line %d in .org directive overlaps with previous code.\n", t2.line);
+					fclose(wf);
+					remove(fn);
+					return -1;
+				} if (starting_offset >= 8192) {
+					printf("Value on line %d in .org directive exceeds rom maximum size.\n", t2.line);
+					fclose(wf);
+					remove(fn);
+					return -1;
+				}
+
+				uint8_t z = 0;
+
+				for (int i = 0; i < diff; i++)
+					fwrite(&z, 1, 1, wf);
+
+				printf("[.ORG] [INT] -> [NONE]\n");
+
+				tokens[ptr2].type = NONE;
+				tokens[ptr3].type = NONE;
+				reset = true;
+			} else {
+				offset = t3.id;
+			}
+		} 
+
 		if (reset) {
-			ptr0 = ptr1 = ptr2 = ptr3 = -1;
+			ptrb = ptr0 = ptr1 = ptr2 = ptr3 = -1;
 			lookahead = next(0) - 1;
 			offset = starting_offset;
-			mnemonic_present = reset = false;
+			org_times_present = mnemonic_present = reset = false;
 			continue;
 		}
 
+		ptrb = ptr0;
 		ptr0 = ptr1;
 		ptr1 = ptr2;
 		ptr2 = ptr3;
