@@ -1,3 +1,5 @@
+; to verjetno ne dela
+
 pp start / 64
 jmp start
 
