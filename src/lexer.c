@@ -319,7 +319,7 @@ int lex(FILE *f)
 	t_len = token_index;
 
 	if (tokens[t_len - 1].type != NEWLINE)
-		tokens[t_len++].type == NEWLINE;
+		tokens[t_len++].type = NEWLINE;
 
 	return t_len;
 }

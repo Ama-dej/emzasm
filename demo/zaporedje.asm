@@ -1,11 +1,29 @@
+pp start / 64
+jmp start
+
+.org 64
 start:
-	lbz 0
-	lab
+  lbz 0
+  lab
 
-loop:
-	adis 1
-	jmp start
+zanka:
+  xci 3
+  xae
+  adis 1
+  jmp s2
+  xae
+  lae
+  jmp zanka
 
-	xci 0
-	lam 0
-	jmp loop
+s2:
+  lbz 1
+  lab
+
+z2:
+  xci 3
+  xae
+  adis 1
+  jmp start
+  xae
+  lae
+  jmp z2
