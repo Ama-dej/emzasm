@@ -111,7 +111,7 @@ const struct opcode_t opcodes[] = {
 
 struct token_t tokens[1 << 16];
 int t_len = 0;
-struct symbol_t symbol_table[256];
+struct symbol_t symbol_table[8192];
 int symbol_index = 0;
 
 const enum type_t precedence_array[][4] = {

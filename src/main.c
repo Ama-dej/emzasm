@@ -14,6 +14,8 @@
 
 int main(int argc, char *argv[])
 {
+	memset(symbol_table, 0, sizeof(symbol_table));
+
 	FILE *f = fopen(argv[1], "r");
 
 	if (f == NULL) {
@@ -21,8 +23,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	if ((t_len = lex(f)) < 0)
-		return -1;
+	t_len = lex(f);
 
 	fclose(f);
 	
@@ -33,9 +34,10 @@ int main(int argc, char *argv[])
 	}
 
 	FILE *wf = fopen(fn, "w+");
+	parse(wf, fn, t_len);
 
-	if (parse(wf, fn, t_len) < 0)
-		return -1;
+	for (uint64_t i = 0; i < sizeof(symbol_table) / sizeof(symbol_table[0]); i++)
+		free(symbol_table[i].name);
 
 	fclose(wf);
 	return 0;

@@ -1,0 +1,4 @@
+An assembler written for the Iskra EMZ-1001 Processor.
+
+Usage:
+	emzasm [SOURCE FILE] [ASSEMBLED FILE]

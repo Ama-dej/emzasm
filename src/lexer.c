@@ -157,14 +157,10 @@ int lex(FILE *f)
 				if (buffer[0] == '.') {
 					if (cur_parent == -1) {
 						printf("Sublabel \"%s:\" on line %d has no parent label.\n", buffer, line);
-						free(buffer);
-						fclose(f);
-						return -1;
+						quit(f, NULL, buffer);
 					} else if (find_sublabel(buffer, cur_parent + 1) != -1) {
 						printf("Duplicate sublabel \"%s:\" on line %d, column %d.\n", buffer, line, column);
-						free(buffer);
-						fclose(f);
-						return -1;
+						quit(f, NULL, buffer);
 					}
 
 					printf("{%d} ", cur_parent);
@@ -172,9 +168,7 @@ int lex(FILE *f)
 				} else {
 					if (find_label(buffer, 0) != -1) {
 						printf("Duplicate label \"%s:\" on line %d, column %d.\n", buffer, line, column);
-						free(buffer);
-						fclose(f);
-						return -1;
+						quit(f, NULL, buffer);
 					}
 
 					cur_parent = symbol_index;
@@ -201,10 +195,8 @@ int lex(FILE *f)
 				skip = true;
 
 				if (t.id == -1) {
-					printf("Illegal instruction \"%s\" on line %d, column %d.", buffer, line, column);
-					free(buffer);
-					fclose(f);
-					return -1;
+					printf("Illegal instruction \"%s\" on line %d, column %d.\n", buffer, line, column);
+					quit(f, NULL, buffer);
 				}
 
 				cur_byte++;
@@ -245,9 +237,7 @@ int lex(FILE *f)
 
 			if (num == -1) {
 				printf("Invalid character or syntax for value \"%s\" on line %d, column %d.\n", buffer, line, column);
-				free(buffer);
-				fclose(f);
-				return -1;
+				quit(f, NULL, buffer);
 			}
 
 			printf("INTEGER[%d] ", num);
@@ -266,8 +256,7 @@ int lex(FILE *f)
 				printf("[<<] ");
 			} else {
 				printf("Unrecognized symbol \'%c\' on line %d, column %d.\n", c, line, column);
-				fclose(f);
-				return -1;
+				quit(f, NULL, NULL);
 			}
 		} else if (c == '>') {
 			column++;
@@ -277,8 +266,7 @@ int lex(FILE *f)
 				printf("[>>] ");
 			} else {
 				printf("Unexpected symbol on line %d, column %d. Expected \'>\' but got \'%c\'.\n", line, column, c);
-				fclose(f);
-				return -1;
+				quit(f, NULL, NULL);
 			}
 		} else if (c == '$') {
 			column++;
@@ -304,8 +292,7 @@ int lex(FILE *f)
 
 			if (!found) {
 				printf("Unexpected symbol on line %d, column %d. Expected \'<\' but got \'%c\'.\n", line, column, c);
-				fclose(f);
-				return -1;
+				quit(f, NULL, NULL);
 			}
 
 			t.type = sisymbolst[i];

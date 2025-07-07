@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd demo
+cd test
 
 for i in *
 do

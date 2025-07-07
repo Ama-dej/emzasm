@@ -117,17 +117,13 @@ int parse(FILE *wf, char *fn, int t_len)
 
 			if (pos == -1) {
 				printf("Invalid label \"%s:\".\n", sym.name);
-				fclose(wf);
-				remove(fn);
-				return -1;
+				quit(wf, fn, NULL);
 			}
 
 			if (symbol_table[pos].offset == -1) {
 				if (org_times_present) {
 					printf("Expression on line %d either not constant or too complex.\n", t3.line);
-					fclose(wf);
-					remove(fn);
-					return -1;
+					quit(wf, fn, NULL);
 				} else {
 					printf("DEBUG: Label postition not yet known, skipping for now.\n");
 				}
@@ -150,14 +146,10 @@ int parse(FILE *wf, char *fn, int t_len)
 
 			if (t1.id < 0) {
 				printf("Value (%d) on line %d in times directive cannot be negative.\n", t1.id, t1.line);
-				fclose(wf);
-				remove(fn);
-				return -1;
+				quit(wf, fn, NULL);
 			} else if (t1.id > 8192) {
 				printf("Value (%d) on line %d in times directive is too comically large.\n", t1.id, t1.line);
-				fclose(wf);
-				remove(fn);
-				return -1;
+				quit(wf, fn, NULL);
 			}
 
 			if (tb.type == NONE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
@@ -245,9 +237,7 @@ int parse(FILE *wf, char *fn, int t_len)
 
 			if (opcodes[i].argument_mask == 0) {
 				printf("Instruction \"%s\" on line %d, column %d, expects no arguments, but arguments were given.\n", mnemonics[i], t2.line, t2.column);
-				fclose(wf);
-				remove(fn);
-				return -1;
+				quit(wf, fn, NULL);
 			}
 
 			uint8_t instruction;
@@ -278,9 +268,7 @@ int parse(FILE *wf, char *fn, int t_len)
 
 			if (opcodes[i].argument_mask != 0) {
 				printf("Instruction \"%s\" on line %d, column %d, expects one argument, but none were given.\n", mnemonics[i], t3.line, t3.column);
-				fclose(wf);
-				remove(fn);
-				return -1;
+				quit(wf, fn, NULL);
 			}
 
 			uint8_t instruction = opcodes[i].opcode;
@@ -340,14 +328,10 @@ int parse(FILE *wf, char *fn, int t_len)
 
 				if (diff < 0) {
 					printf("Value on line %d in .org directive overlaps with previous code.\n", t2.line);
-					fclose(wf);
-					remove(fn);
-					return -1;
+					quit(wf, fn, NULL);
 				} if (starting_offset >= 8192) {
 					printf("Value on line %d in .org directive exceeds rom maximum size.\n", t2.line);
-					fclose(wf);
-					remove(fn);
-					return -1;
+					quit(wf, fn, NULL);
 				}
 
 				uint8_t z = 0;
@@ -389,8 +373,8 @@ int parse(FILE *wf, char *fn, int t_len)
 	if ((tmp = next(0)) != -1) {
 		struct token_t t = tokens[tmp];
 		printf("Invalid syntax for expression on line %d.\n", t.line, t.column);
-		fclose(wf);
-		remove(fn);
-		return -1;
+		quit(wf, fn, NULL);
 	}
+
+	return 0;
 }

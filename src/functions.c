@@ -57,3 +57,15 @@ int find_label(char *s, int offset)
 
 	return -1;
 }
+
+void quit(FILE *f, char *name, void *buffer)
+{
+	fclose(f);
+	remove(name);
+	free(buffer);	
+
+	for (uint64_t i = 0; i < sizeof(symbol_table) / sizeof(symbol_table[0]); i++)
+        free(symbol_table[i].name);
+
+	exit(-1);
+}
