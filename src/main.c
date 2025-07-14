@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	FILE *f = fopen(argv[1], "r");
 
 	if (f == NULL) {
-		printf("An error occured whilst trying to open file \"%s\"", argv[1]);
+		printf("An error occured whilst trying to open file \"%s\"\n", argv[1]);
 		return -1;
 	}
 

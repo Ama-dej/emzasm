@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/aavoid/Code/c/emzasm/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
