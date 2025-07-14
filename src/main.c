@@ -7,10 +7,9 @@
 
 #include "typedef.h"
 #include "globalvars.h"
-
-#include "functions.c"
-#include "lexer.c"
-#include "parser.c"
+#include "functions.h"
+#include "lexer.h"
+#include "parser.h"
 
 int main(int argc, char *argv[])
 {
