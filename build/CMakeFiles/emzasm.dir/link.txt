@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/emzasm.dir/link.d CMakeFiles/emzasm.dir/src/main.c.o -o emzasm  libemzasmlib.a

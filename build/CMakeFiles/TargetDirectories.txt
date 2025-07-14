@@ -1,4 +1,0 @@
-/home/aavoid/Code/c/emzasm/build/CMakeFiles/emzasmlib.dir
-/home/aavoid/Code/c/emzasm/build/CMakeFiles/emzasm.dir
-/home/aavoid/Code/c/emzasm/build/CMakeFiles/edit_cache.dir
-/home/aavoid/Code/c/emzasm/build/CMakeFiles/rebuild_cache.dir

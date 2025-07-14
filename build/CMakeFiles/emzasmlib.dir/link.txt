@@ -1,2 +1,0 @@
-/usr/bin/ar qc libemzasmlib.a
-/usr/bin/ranlib libemzasmlib.a
