@@ -45,7 +45,6 @@ int parse(FILE *wf, char *fn, int t_len)
 {
 	int starting_offset = 0;
 	int offset = 0;
-	int token_index = 0;
 	int ptrb = -1;
 	int ptr0 = -1;
 	int ptr1 = -1;
@@ -125,18 +124,18 @@ int parse(FILE *wf, char *fn, int t_len)
 					printf("Expression on line %d either not constant or too complex.\n", t3.line);
 					quit(wf, fn, NULL);
 				} else {
-					printf("DEBUG: Label postition not yet known, skipping for now.\n");
+					DEBUG_PRINT(("DEBUG: Label postition not yet known, skipping for now.\n"));
 				}
 			} else {
 				//printf("%s, %d\n", sym.name, symbol_table[pos].offset);
-				printf("[REFERENCE] -> [INT]\n");
+				DEBUG_PRINT(("[REFERENCE] -> [INT]\n"));
 			
 				tokens[ptr3].type = INTEGER;
 				tokens[ptr3].id = symbol_table[pos].offset;
 				reset = true;
 			}
 		} else if (t1.type == LPARENTHESIS && t2.type == INTEGER && t3.type == RPARENTHESIS) {
-			printf("[(] [INT] [)] -> [INT]\n");
+			DEBUG_PRINT(("[(] [INT] [)] -> [INT]\n"));
 			tokens[ptr1].type = NONE;
 			tokens[ptr3].type = NONE;
 			reset = true;
@@ -153,7 +152,7 @@ int parse(FILE *wf, char *fn, int t_len)
 			}
 
 			if (tb.type == NONE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
-				printf("[TIMES] [INT] [DX] [INT] -> [NONE]\n", size);
+				DEBUG_PRINT(("[TIMES] [INT] [DX] [INT] -> [NONE]\n"));
 
 				for (int i = 0; i < t1.id; i++)
 					fwrite(&t3.id, size, 1, wf);
@@ -172,43 +171,43 @@ int parse(FILE *wf, char *fn, int t_len)
 			int t0_precedence = precedence(t0.type);
 
 			if (t0_precedence > precedence(STAR) && t2.type == STAR && lookahead_precedence >= precedence(STAR)) {
-				printf("[INT] [*] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [*] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id * t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(SLASH) && t2.type == SLASH && lookahead_precedence >= precedence(SLASH)) {
-				printf("[INT] [/] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [/] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id / t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(REMAINDER) && t2.type == REMAINDER && lookahead_precedence >= precedence(REMAINDER)) {
-				printf("[INT] [%] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [%%] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id % t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(PLUS) && t2.type == PLUS && lookahead_precedence >= precedence(PLUS)) {
-				printf("[INT] [+] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [+] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id + t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(MINUS) && t2.type == MINUS && lookahead_precedence >= precedence(MINUS)) {
-				printf("[INT] [-] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [-] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id - t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(LEFT_SHIFT) && t2.type == LEFT_SHIFT && lookahead_precedence >= precedence(LEFT_SHIFT)) {
-				printf("[INT] [<<] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [<<] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id << t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(RIGHT_SHIFT) && t2.type == RIGHT_SHIFT && lookahead_precedence >= precedence(RIGHT_SHIFT)) {
-				printf("[INT] [>>] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [>>] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id >> t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(AND) && t2.type == AND && lookahead_precedence >= precedence(AND)) {
-				printf("[INT] [&] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [&] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id & t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(OR) && t2.type == OR && lookahead_precedence >= precedence(OR)) {
-				printf("[INT] [|] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [|] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id | t3.id;
 				reset = true;
 			} else if (t0_precedence > precedence(XOR) && t2.type == XOR && lookahead_precedence >= precedence(XOR)) {
-				printf("[INT] [^] [INT] -> [INT]\n");
+				DEBUG_PRINT(("[INT] [^] [INT] -> [INT]\n"));
 				tokens[ptr3].id = t1.id ^ t3.id;
 				reset = true;
 			}
@@ -218,16 +217,16 @@ int parse(FILE *wf, char *fn, int t_len)
 				tokens[ptr2].type = NONE;
 			}
 		} else if (t1.type != LABEL_REFERENCE && t2.type == PLUS && t3.type == INTEGER) {
-			printf("[+] [INT] -> [INT]\n");
+			DEBUG_PRINT(("[+] [INT] -> [INT]\n"));
 			tokens[ptr2].type = NONE;
 			reset = true;
 		} else if (t1.type != LABEL_REFERENCE && t2.type == MINUS && t3.type == INTEGER) {
-			printf("[-] [INT] -> [INT]\n");
+			DEBUG_PRINT(("[-] [INT] -> [INT]\n"));
 			tokens[ptr3].id = -t3.id;
 			tokens[ptr2].type = NONE;
 			reset = true;
 		} else if (t2.type == NOT && t3.type == INTEGER) {
-			printf("[~] [INT] -> [INT]\n");
+			DEBUG_PRINT(("[~] [INT] -> [INT]\n"));
 			tokens[ptr3].id = ~t3.id;
 			tokens[ptr2].type = NONE;
 			reset = true;
@@ -256,7 +255,7 @@ int parse(FILE *wf, char *fn, int t_len)
 			*/
 			
 			instruction = opcodes[i].opcode | (t3.id & mask);	
-			printf("[MNEMONIC] [INT] -> [NONE] %2Xh %d\n", instruction, t3.id);
+			DEBUG_PRINT(("[MNEMONIC] [INT] -> [NONE] %2Xh %d\n", instruction, t3.id));
 			fwrite(&instruction, 1, 1, wf);
 
 			tokens[ptr2].type = NONE;
@@ -272,30 +271,30 @@ int parse(FILE *wf, char *fn, int t_len)
 			}
 
 			uint8_t instruction = opcodes[i].opcode;
-			printf("[MNEMONIC] -> [NONE] %2Xh\n", instruction);
+			DEBUG_PRINT(("[MNEMONIC] -> [NONE] %2Xh\n", instruction));
 			fwrite(&instruction, 1, 1, wf);
 
 			tokens[ptr3].type = NONE;
 			reset = true;
 		} else if (t2.type == NONE && t3.type == LABEL_LOC && (t_lookahead.type == NEWLINE || t_lookahead.type == MNEMONIC)) {
-			printf("[LABEL_LOC] -> [NONE]\n");
+			DEBUG_PRINT(("[LABEL_LOC] -> [NONE]\n"));
 			tokens[ptr3].type = NONE;
 			reset = true;
 		} else if (t3.type == LABEL) {	
-			printf("[LABEL] -> [LABEL_LOC] %d\n", offset);
+			DEBUG_PRINT(("[LABEL] -> [LABEL_LOC] %d\n", offset));
 			symbol_table[tokens[ptr3].id].offset = offset;
 			tokens[ptr3].type = LABEL_LOC;
 			reset = true;
 		} else if (t2.type == NONE && t3.type == NEWLINE) {
-			printf("[NEWLINE] -> [NONE]\n");
+			DEBUG_PRINT(("[NEWLINE] -> [NONE]\n"));
 			tokens[ptr3].type = NONE;
 			reset = true;
 		} else if (t2.type == NONE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
-			printf("[INT] -> [NONE]\n");	
+			DEBUG_PRINT(("[INT] -> [NONE]\n"));
 			tokens[ptr3].type = NONE;
 			reset = true;
 		} else if (t3.type == CURRENT_SEGMENT) {
-			printf("[$$] -> [INT] %d\n", current_segment);
+			DEBUG_PRINT(("[$$] -> [INT] %d\n", current_segment));
 			tokens[ptr3].type = INTEGER;
 			tokens[ptr3].id = current_segment;
 			reset = true;
@@ -307,14 +306,14 @@ int parse(FILE *wf, char *fn, int t_len)
 			else
 				tokens[ptr3].id = offset;
 
-			printf("[$] -> [INT] %d\n", tokens[ptr3].id);
+			DEBUG_PRINT(("[$] -> [INT] %d\n", tokens[ptr3].id));
 
 			reset = true;
 		} else if (t1.type == NONE && t2.type == DX_DIRECTIVE && t3.type == INTEGER && t_lookahead.type == NEWLINE) {
 			int size = 1 << t2.id;
 			starting_offset += size;
 
-			printf("[DX%d] [INT] -> [NONE]\n", size);
+			DEBUG_PRINT(("[DX%d] [INT] -> [NONE]\n", size));
 
 			fwrite(&t3.id, size, 1, wf);
 
@@ -339,7 +338,7 @@ int parse(FILE *wf, char *fn, int t_len)
 				for (int i = 0; i < diff; i++)
 					fwrite(&z, 1, 1, wf);
 
-				printf("[.ORG] [INT] -> [NONE]\n");
+				DEBUG_PRINT(("[.ORG] [INT] -> [NONE]\n"));
 
 				tokens[ptr2].type = NONE;
 				tokens[ptr3].type = NONE;
@@ -372,7 +371,7 @@ int parse(FILE *wf, char *fn, int t_len)
 
 	if ((tmp = next(0)) != -1) {
 		struct token_t t = tokens[tmp];
-		printf("Invalid syntax for expression on line %d.\n", t.line, t.column);
+		printf("Invalid syntax for expression on line %d.\n", t.line);
 		quit(wf, fn, NULL);
 	}
 

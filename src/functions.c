@@ -1,3 +1,9 @@
+#ifdef DEBUG
+#define DEBUG_PRINT(x) printf x
+#else
+#define DEBUG_PRINT(x) do {} while (0)
+#endif
+
 int find_sublabel(char *s, int offset)
 {
 	for (int i = offset; i < symbol_index; i++) {

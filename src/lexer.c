@@ -121,7 +121,7 @@ int lex(FILE *f)
 		if (c == ' ' || c == '\t') {
 			continue;
 		} else if (c == '\n') {
-			printf("\n");
+			DEBUG_PRINT(("\n"));
 			line++;
 			column = 0;	
 			second = false;
@@ -130,7 +130,7 @@ int lex(FILE *f)
 				c = fgetc(f);
 			} while (c != '\n' && c != EOF);
 
-			printf("\n");
+			DEBUG_PRINT(("\n"));
 			line++;
 			column = 0;
 			second = false;
@@ -148,7 +148,7 @@ int lex(FILE *f)
 			int di;
 
 			if (c == ':') { // je 100 % oznaka
-				printf("LABEL[%s %d] ", buffer, cur_byte);
+				DEBUG_PRINT(("LABEL[%s %d] ", buffer, cur_byte));
 				t.type = LABEL;
 				t.id = symbol_index;
 
@@ -177,7 +177,7 @@ int lex(FILE *f)
 				//sym.offset = cur_byte;
 				symbol_table[symbol_index++] = sym;
 			} else if ((di = isdirective(buffer)) != -1 && !second){
-				printf("DIRECTIVE[%s] ", buffer);	
+				DEBUG_PRINT(("DIRECTIVE[%s] ", buffer));
 				t.type = directivest[di];
 				t.id = di;
 				skip = true;
@@ -188,7 +188,7 @@ int lex(FILE *f)
 				cur_byte++;
 				free(buffer);
 			} else if (!second) {
-				printf("MNEMONIC[%s %d] ", buffer, ismnemonic(buffer));
+				DEBUG_PRINT(("MNEMONIC[%s %d] ", buffer, ismnemonic(buffer)));
 				t.type = MNEMONIC;
 				t.id = ismnemonic(buffer);
 				second = true;
@@ -202,7 +202,7 @@ int lex(FILE *f)
 				cur_byte++;
 				free(buffer);
 			} else {
-				printf("REFERENCE[%s] ", buffer);
+				DEBUG_PRINT(("REFERENCE[%s] ", buffer));
 				t.type = LABEL_REFERENCE;
 				t.id = symbol_index;
 				skip = true;
@@ -240,7 +240,7 @@ int lex(FILE *f)
 				quit(f, NULL, buffer);
 			}
 
-			printf("INTEGER[%d] ", num);
+			DEBUG_PRINT(("INTEGER[%d] ", num));
 
 			t.type = INTEGER;
 			t.id = num;
@@ -253,7 +253,7 @@ int lex(FILE *f)
 
 			if ((c = fgetc(f)) == '<') {
 				t.type = LEFT_SHIFT;
-				printf("[<<] ");
+				DEBUG_PRINT(("[<<] "));
 			} else {
 				printf("Unrecognized symbol \'%c\' on line %d, column %d.\n", c, line, column);
 				quit(f, NULL, NULL);
@@ -263,7 +263,7 @@ int lex(FILE *f)
 
 			if ((c = fgetc(f)) == '>') {
 				t.type = RIGHT_SHIFT;
-				printf("[>>] ");
+				DEBUG_PRINT(("[>>] "));
 			} else {
 				printf("Unexpected symbol on line %d, column %d. Expected \'>\' but got \'%c\'.\n", line, column, c);
 				quit(f, NULL, NULL);
@@ -273,11 +273,11 @@ int lex(FILE *f)
 
 			if ((c = fgetc(f)) == '$') {
 				t.type = CURRENT_SEGMENT;
-				printf("[$$] ");
+				DEBUG_PRINT(("[$$] "));
 			} else {
 				t.type = CURRENT_ADDRESS;
 				skip = true;
-				printf("[$] ");
+				DEBUG_PRINT(("[$] "));
 			}
 		} else {
 			int i = 0;
