@@ -216,13 +216,17 @@ int lex(FILE *f)
 			char *buffer = malloc(256);
 
 			int i = 0;
+			bool ishex = false;
 
 			do {
 				buffer[i++] = c;
 				c = tolower(fgetc(f));
-			} while (isdigit(c) || ((i == 1) && (c == 'x' || c == 'b')));	// TODO: hmm več črk je loh not...
+			} while (((isxdigit(c) && ishex) || isdigit(c)) || ((i == 1) && ((ishex = (c == 'x')) || c == 'b')));
+			// TODO: hmm več črk je loh not...
 			
 			buffer[i] = 0;
+
+			DEBUG_PRINT(("VALUE BUFFER CONTENT[%s] ", buffer));
 			
 			i = 0;
 			int num = 0;

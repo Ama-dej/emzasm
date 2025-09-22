@@ -249,10 +249,8 @@ int parse(FILE *wf, char *fn, int t_len)
 				mask = opcodes[i].argument_mask;
 			}
 
-			/*
 			if (t3.id > mask)
-				printf("Warning: Argument %d is bigger than expected (%d), truncating to %d.\n", t3.id, mask, t3.id & mask);
-			*/
+				printf("Warning: Value %d is too large (bigger than %d), truncating to %d.\n", t3.id, mask, t3.id & mask);
 			
 			instruction = opcodes[i].opcode | (t3.id & mask);	
 			DEBUG_PRINT(("[MNEMONIC] [INT] -> [NONE] %2Xh %d\n", instruction, t3.id));
